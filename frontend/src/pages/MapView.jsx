@@ -140,7 +140,7 @@ const MapView = () => {
 
   const fetchReports = async () => {
     try {
-      const res = await axios.get("/api/reports?limit=200"); // Fetch more for map context
+      const res = await axios.get("/api/reports?limit=200&map=true"); // Fetch more for map context without images
       setReports(res.data.reports || []);
     } catch (e) {
       console.error(e);

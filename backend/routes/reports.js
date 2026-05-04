@@ -22,10 +22,7 @@ router.get('/', [
     if (req.query.category) matchStage.category = req.query.category;
     if (req.query.status) matchStage.status = req.query.status;
     if (req.query.search) {
-      matchStage.$or = [
-          { title: { $regex: req.query.search, $options: 'i' } },
-          { description: { $regex: req.query.search, $options: 'i' } }
-      ];
+      matchStage.$text = { $search: req.query.search };
     }
 
     let sortStage = {};
@@ -79,14 +76,6 @@ router.get('/', [
               "$votes", 
               { $ifNull: [{ $sum: "$childReports.votes" }, 0] }
             ] 
-          },
-          // Merge images: Parent images + Flattened Child images
-          allImages: {
-             $concatArrays: [ "$images", { $reduce: {
-                input: "$childReports.images",
-                initialValue: [],
-                in: { $concatArrays: ["$$value", "$$this"] }
-             }}]
           }
         }
       },
@@ -103,7 +92,38 @@ router.get('/', [
           as: 'reportedBy'
         }
       },
-      { $unwind: { path: '$reportedBy', preserveNullAndEmptyArrays: true } }
+      { $unwind: { path: '$reportedBy', preserveNullAndEmptyArrays: true } },
+      // Optimization: Slice images array to only send the first image, and remove heavy child data
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          category: 1,
+          severity: 1,
+          status: 1,
+          location: 1,
+          votes: 1,
+          totalVotes: 1,
+          clusterCount: 1,
+          createdAt: 1,
+          voters: 1,
+          reportedBy: 1,
+          images: req.query.map === 'true' ? "$$REMOVE" : { $slice: ["$images", 1] },
+          "childReports._id": 1,
+          "childReports.title": 1,
+          "childReports.description": 1,
+          "childReports.status": 1,
+          "childReports.createdAt": 1,
+          "childReports.reportedBy": 1,
+          "childReports.images": req.query.map === 'true' ? "$$REMOVE" : { 
+             $map: { 
+                input: "$childReports", 
+                as: "child", 
+                in: { $slice: ["$$child.images", 1] } 
+             } 
+          }
+        }
+      }
     ];
 
     const reports = await ProblemReport.aggregate(pipeline);

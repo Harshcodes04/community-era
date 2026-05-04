@@ -185,6 +185,7 @@ const AdminDashboard = () => {
       });
       if (filters.status) params.append("status", filters.status);
       if (filters.category) params.append("category", filters.category);
+      params.append("map", "true"); // Exclude images to reduce payload size
 
       const res = await axios.get(`/api/reports?${params}`);
 

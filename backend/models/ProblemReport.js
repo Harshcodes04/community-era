@@ -76,6 +76,9 @@ const problemReportSchema = new mongoose.Schema({
 problemReportSchema.index({ 'location.coordinates': '2dsphere' });
 problemReportSchema.index({ votes: -1 });
 problemReportSchema.index({ createdAt: -1 });
+problemReportSchema.index({ status: 1 });
+problemReportSchema.index({ category: 1 });
+problemReportSchema.index({ title: 'text', description: 'text' });
 
 module.exports = mongoose.model('ProblemReport', problemReportSchema);
 
